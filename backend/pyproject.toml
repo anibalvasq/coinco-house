@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "coinco-rep"
+version = "0.1.0"
+description = "Gestor de gastos compartidos - backend FastAPI"
+authors = []
+readme = "README.md"
+packages = [{include = "coinco_rep", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = {version = ">=0.111", extras = ["standard"]}
+uvicorn = {version = ">=0.30", extras = ["standard"]}
+supabase = ">=2.5"
+bcrypt = ">=4.1"
+pyjwt = ">=2.8"
+pydantic = ">=2.7"
+pydantic-settings = ">=2.3"
+python-dotenv = ">=1.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0"
+pytest-asyncio = ">=0.23"
+httpx = ">=0.27"
+ruff = ">=0.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
