@@ -31,8 +31,13 @@ def _public(person: dict) -> dict:
 
 
 @router.get("")
-def list_people(session: dict = Depends(get_current_session)):
-    people = repo.list_people(session["household_id"])
+def list_people():
+    # Public on purpose: the login screen needs to render the profile picker
+    # (name + color only, never pin_hash) before a session exists. This app is
+    # single-household per deployment, so settings.household_id is safe here.
+    from coinco_rep.config import settings
+
+    people = repo.list_people(settings.household_id)
     return [_public(p) for p in people]
 
 
