@@ -16,6 +16,9 @@ dist/
 node_modules/
 frontend/dist/
 
+# Vercel build output (generated server-side, not committed)
+public/
+
 # Misc
 .DS_Store
 Thumbs.db
