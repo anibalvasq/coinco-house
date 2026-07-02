@@ -88,8 +88,10 @@ poetry run pytest tests/ -v
    - `JWT_SECRET`
    - `HOUSEHOLD_ID`
    - `CORS_ORIGINS` (p.ej. `https://coinco-rep.vercel.app`)
-3. Vercel lee el `vercel.json` de la raíz y construye el frontend + despliega el backend Python serverless.
+3. Vercel lee el `vercel.json` de la raíz, que define dos **Services**: `frontend/` (build estático Vite) y `backend/` (función Python con el `app` de FastAPI expuesto en `backend/app.py`). Un `rewrite` enruta `/api/*` al backend y el resto al frontend.
 4. El frontend en producción hace fetch a `/api/v1/*` relativo → mismo dominio, sin problemas de CORS.
+
+> ⚠️ No uses la propiedad legacy `builds`/`routes` en `vercel.json` — el pipeline `vercel build` de los deploys conectados a Git la ignora silenciosamente (deploy "exitoso" sin generar ningún archivo → 404 en todas las rutas). Usa siempre `services` + `rewrites`.
 
 ### Migraciones en producción
 
@@ -102,6 +104,7 @@ Ejecuta `001_initial_schema.sql` en el Supabase del proyecto de producción **an
 ```
 coinco_rep/
 ├── backend/
+│   ├── app.py                  Entrypoint Vercel (Python Service, re-exporta `app`)
 │   ├── src/coinco_rep/
 │   │   ├── main.py             FastAPI app
 │   │   ├── config.py           Settings (pydantic-settings)
