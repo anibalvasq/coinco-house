@@ -4,32 +4,43 @@ import { initial } from "../state.js";
 /**
  * SVG donut chart built with stroke-dasharray/dashoffset — no external libs.
  * r=54 → circumference = 2π×54 ≈ 339.29
+ *
+ * Rules:
+ * - stroke-linecap="butt" (default): avoids round caps bleeding over adjacent arcs.
+ * - GAP must be > 0 so adjacent arcs don't visually merge.
+ * - Colors are guaranteed distinct via FALLBACK_COLORS if person colors are similar.
  */
+const DONUT_COLORS = ["#3b82f6", "#f97316", "#22c55e", "#a855f7", "#ef4444", "#eab308"];
+
 function buildDonutChart(slices: { color: string; pct: number }[]): string {
   const R = 54;
   const C = 2 * Math.PI * R;
-  const GAP = 3; // gap between slices in px
+  const GAP = 6; // px gap between slices (must be > stroke-width/2 for butt caps to show gap)
   const cx = 70, cy = 70;
 
-  let offset = 0; // tracks dashoffset rotation (starts at top: -C/4)
-  const arcs = slices.map(s => {
+  // Always use chart-specific distinct colors — person avatar colors can be too similar
+  const colors = slices.map((_s, i) => DONUT_COLORS[i % DONUT_COLORS.length]);
+
+  let offset = 0;
+  const arcs = slices.map((s, i) => {
     const arcLen = Math.max(0, s.pct * C - GAP);
+    // dashoffset: shift so first arc starts at 12-o'clock (top = -C/4 from 3-o'clock origin)
+    const dashoffset = -(offset * C - C / 4);
     const svg = `<circle
       cx="${cx}" cy="${cy}" r="${R}"
       fill="none"
-      stroke="${s.color}"
-      stroke-width="16"
-      stroke-dasharray="${arcLen} ${C - arcLen}"
-      stroke-dashoffset="${-(offset - C / 4)}"
-      stroke-linecap="round"
+      stroke="${colors[i]}"
+      stroke-width="18"
+      stroke-dasharray="${arcLen.toFixed(2)} ${(C - arcLen).toFixed(2)}"
+      stroke-dashoffset="${dashoffset.toFixed(2)}"
     />`;
-    offset += s.pct * C;
+    offset += s.pct;
     return svg;
   });
 
   return `
     <svg width="140" height="140" viewBox="0 0 140 140" style="display:block">
-      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="oklch(0.93 0.01 75)" stroke-width="16"/>
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#f0f0ec" stroke-width="18"/>
       ${arcs.join("")}
     </svg>`;
 }
@@ -78,7 +89,7 @@ export async function renderDashboard(
 
   const legend = data.split_preview.map((p, i) => `
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
+      <div style="width:10px;height:10px;border-radius:50%;background:${DONUT_COLORS[i % DONUT_COLORS.length]};flex-shrink:0"></div>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${p.name}</div>
         <div style="font-size:11px;color:var(--text-caption)">${effectivePcts[i].toFixed(1)}%</div>
