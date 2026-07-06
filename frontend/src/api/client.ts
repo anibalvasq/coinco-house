@@ -80,6 +80,8 @@ export interface Category {
   sort_order: number;
 }
 
+export type SplitMode = "proportional" | "equal";
+
 export interface Bill {
   id: string;
   category_id: string;
@@ -88,6 +90,7 @@ export interface Bill {
   date: string;
   note: string;
   month_key: string;
+  split_mode: SplitMode;
 }
 
 export interface BillCreate {
@@ -96,6 +99,7 @@ export interface BillCreate {
   amount: number;
   date: string;
   note?: string;
+  split_mode?: SplitMode;
 }
 
 export interface SplitResult {
@@ -124,6 +128,7 @@ export interface BillDetail {
   category_name: string;
   amount: number;
   amount_fmt: string;
+  split_mode: SplitMode;
   per_person: { person_id: string; name: string; amount: number; amount_fmt: string }[];
 }
 

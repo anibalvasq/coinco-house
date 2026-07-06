@@ -1,10 +1,13 @@
 """
-Core split calculation logic — port of computeSplit() from the HTML prototype.
+Core split calculation logic.
 
 Business rules:
-  - Each person's share % = their days / sum of all days in the month.
-  - If total registered days == 0, fall back to an equal split and set equal_split_warning=True.
-  - Rounding modes: "exact" (default), "round100", "round1000" (CLP has no cents).
+  - Each bill has a split_mode: "proportional" or "equal".
+  - proportional: person's share = their days / total days for that bill.
+  - equal: every person pays 1/n of that bill regardless of days.
+  - If total registered days == 0 in proportional mode, falls back to equal
+    and sets equal_split_warning=True.
+  - Rounding modes: "exact" (default), "round100", "round1000" (CLP).
 """
 from dataclasses import dataclass, field
 
@@ -24,6 +27,7 @@ class BillInput:
     name: str
     amount: float
     date: str
+    split_mode: str = "proportional"  # "proportional" | "equal"
 
 
 @dataclass
@@ -42,6 +46,7 @@ class BillSplitDetail:
     name: str
     category_name: str
     amount: float
+    split_mode: str
     per_person: list[dict]  # [{person_id, name, amount}]
 
 
@@ -69,11 +74,11 @@ def compute_split(
     rounding: str = "exact",
 ) -> SplitResult:
     """
-    Compute the proportional cost split for a given month.
+    Compute cost split for a month, respecting each bill's split_mode.
 
     Args:
         people: All household members.
-        bills: All bills for the month.
+        bills: All bills for the month, each with its own split_mode.
         stays: Mapping of person_id -> days stayed that month.
         rounding: "exact" | "round100" | "round1000"
     """
@@ -82,35 +87,43 @@ def compute_split(
     n = len(people) or 1
     equal_split_warning = total_days == 0
 
-    per_person: list[PersonSplit] = []
+    # Proportional pct per person (used for proportional bills and summary display)
+    prop_pct: dict[str, float] = {}
     for person in people:
         days = stays.get(person.id, 0)
-        pct = days / total_days if total_days > 0 else 1.0 / n
-        raw = total_amount * pct
-        amount = _apply_rounding(raw, rounding)
-        per_person.append(PersonSplit(
-            id=person.id,
-            name=person.name,
-            color=person.color,
-            days=days,
-            pct=pct,
-            amount=amount,
-        ))
+        prop_pct[person.id] = days / total_days if total_days > 0 else 1.0 / n
+
+    # Accumulate each person's total across all bills
+    person_totals: dict[str, float] = {p.id: 0.0 for p in people}
 
     bill_details: list[BillSplitDetail] = []
     for bill in bills:
         pp = []
-        for ps in per_person:
-            raw_share = bill.amount * ps.pct
-            share = _apply_rounding(raw_share, rounding)
-            pp.append({"person_id": ps.id, "name": ps.name, "amount": share})
+        for person in people:
+            pct = 1.0 / n if bill.split_mode == "equal" else prop_pct[person.id]
+            share = _apply_rounding(bill.amount * pct, rounding)
+            person_totals[person.id] += share
+            pp.append({"person_id": person.id, "name": person.name, "amount": share})
         bill_details.append(BillSplitDetail(
             id=bill.id,
             name=bill.name or bill.category_name,
             category_name=bill.category_name,
             amount=bill.amount,
+            split_mode=bill.split_mode,
             per_person=pp,
         ))
+
+    per_person: list[PersonSplit] = [
+        PersonSplit(
+            id=p.id,
+            name=p.name,
+            color=p.color,
+            days=stays.get(p.id, 0),
+            pct=prop_pct[p.id],
+            amount=person_totals[p.id],
+        )
+        for p in people
+    ]
 
     return SplitResult(
         total_amount=total_amount,

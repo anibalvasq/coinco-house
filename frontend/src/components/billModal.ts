@@ -1,4 +1,4 @@
-import { api, Bill, BillCreate, Category } from "../api/client.js";
+import { api, Bill, BillCreate, Category, SplitMode } from "../api/client.js";
 import { todayStr, CAT_PALETTE } from "../state.js";
 
 export function openBillModal(
@@ -24,12 +24,14 @@ export function openBillModal(
       amount: editing.amount,
       date: editing.date,
       note: editing.note,
+      split_mode: editing.split_mode ?? "proportional",
     } : {
       category_id: categories[0]?.id || "",
       name: "",
       amount: undefined,
       date: todayStr(),
       note: "",
+      split_mode: "proportional",
     };
 
     const scrim = document.createElement("div");
@@ -80,6 +82,31 @@ export function openBillModal(
           <textarea id="bill-note" class="form-input" rows="2" placeholder="...">${draft.note || ""}</textarea>
         </div>
 
+        <div class="form-group">
+          <div class="form-label">Forma de dividir</div>
+          <div style="display:flex;gap:8px">
+            <button id="split-proportional" class="split-mode-btn${draft.split_mode !== "equal" ? " active" : ""}"
+              style="flex:1;padding:10px 8px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+                     border:2px solid ${draft.split_mode !== "equal" ? "var(--accent)" : "oklch(0.88 0.01 75)"};
+                     background:${draft.split_mode !== "equal" ? "oklch(0.97 0.02 250)" : "#fff"};
+                     color:${draft.split_mode !== "equal" ? "var(--accent)" : "var(--text-secondary)"}">
+              📅 Por estancia
+            </button>
+            <button id="split-equal" class="split-mode-btn${draft.split_mode === "equal" ? " active" : ""}"
+              style="flex:1;padding:10px 8px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+                     border:2px solid ${draft.split_mode === "equal" ? "var(--accent)" : "oklch(0.88 0.01 75)"};
+                     background:${draft.split_mode === "equal" ? "oklch(0.97 0.02 250)" : "#fff"};
+                     color:${draft.split_mode === "equal" ? "var(--accent)" : "var(--text-secondary)"}">
+              ⚖️ 50 / 50
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--text-caption);margin-top:6px" id="split-mode-hint">
+            ${draft.split_mode === "equal"
+              ? "Cada persona paga la misma parte, sin importar los días de estadía."
+              : "Se divide según los días que cada persona estuvo en el hogar."}
+          </div>
+        </div>
+
         <div style="display:flex;gap:10px;margin-top:8px;${editing ? "justify-content:space-between" : "justify-content:flex-end"}">
           ${editing ? `<button id="bill-delete" class="btn-destructive">Eliminar</button>` : ""}
           <div style="display:flex;gap:10px">
@@ -91,6 +118,27 @@ export function openBillModal(
 
     document.body.appendChild(scrim);
     let selectedCatId = draft.category_id || categories[0]?.id || "";
+    let selectedSplitMode: SplitMode = (draft.split_mode as SplitMode) || "proportional";
+
+    function setSplitMode(mode: SplitMode) {
+      selectedSplitMode = mode;
+      const propBtn = document.getElementById("split-proportional") as HTMLButtonElement;
+      const eqBtn = document.getElementById("split-equal") as HTMLButtonElement;
+      const hint = document.getElementById("split-mode-hint")!;
+      const isEqual = mode === "equal";
+      propBtn.style.borderColor = !isEqual ? "var(--accent)" : "oklch(0.88 0.01 75)";
+      propBtn.style.background = !isEqual ? "oklch(0.97 0.02 250)" : "#fff";
+      propBtn.style.color = !isEqual ? "var(--accent)" : "var(--text-secondary)";
+      eqBtn.style.borderColor = isEqual ? "var(--accent)" : "oklch(0.88 0.01 75)";
+      eqBtn.style.background = isEqual ? "oklch(0.97 0.02 250)" : "#fff";
+      eqBtn.style.color = isEqual ? "var(--accent)" : "var(--text-secondary)";
+      hint.textContent = isEqual
+        ? "Cada persona paga la misma parte, sin importar los días de estadía."
+        : "Se divide según los días que cada persona estuvo en el hogar.";
+    }
+
+    document.getElementById("split-proportional")?.addEventListener("click", () => setSplitMode("proportional"));
+    document.getElementById("split-equal")?.addEventListener("click", () => setSplitMode("equal"));
 
     // Category chip selection
     scrim.querySelectorAll("[data-catid]").forEach(btn => {
@@ -143,9 +191,9 @@ export function openBillModal(
       if (!selectedCatId || isNaN(amount) || !date) return;
       try {
         if (editing) {
-          await api.updateBill(editing.id, { category_id: selectedCatId, name, amount, date, note });
+          await api.updateBill(editing.id, { category_id: selectedCatId, name, amount, date, note, split_mode: selectedSplitMode });
         } else {
-          await api.createBill(month, { category_id: selectedCatId, name, amount, date, note });
+          await api.createBill(month, { category_id: selectedCatId, name, amount, date, note, split_mode: selectedSplitMode });
         }
         document.getElementById("bill-modal-scrim")?.remove();
         onSaved();

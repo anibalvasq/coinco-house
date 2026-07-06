@@ -29,6 +29,7 @@ def _build_split_response(household_id: str, month_key: str):
             name=b["name"],
             amount=float(b["amount"]),
             date=b["date"],
+            split_mode=b.get("split_mode", "proportional"),
         )
         for b in raw_bills
     ]
@@ -60,6 +61,7 @@ def _build_split_response(household_id: str, month_key: str):
                 "category_name": b.category_name,
                 "amount": b.amount,
                 "amount_fmt": fmt_clp(b.amount),
+                "split_mode": b.split_mode,
                 "per_person": [
                     {**pp, "amount_fmt": fmt_clp(pp["amount"])}
                     for pp in b.per_person

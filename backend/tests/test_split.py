@@ -6,8 +6,18 @@ def make_people(*names_days: tuple[str, int]) -> list[PersonInput]:
     return [PersonInput(id=f"p{i}", name=n, color="#fff", days=d) for i, (n, d) in enumerate(names_days)]
 
 
-def make_bills(*amounts: float) -> list[BillInput]:
-    return [BillInput(id=f"b{i}", category_name="Cat", name="", amount=a, date="2026-06-01") for i, a in enumerate(amounts)]
+def make_bills(*amounts: float, split_mode: str = "proportional") -> list[BillInput]:
+    return [
+        BillInput(id=f"b{i}", category_name="Cat", name="", amount=a, date="2026-06-01", split_mode=split_mode)
+        for i, a in enumerate(amounts)
+    ]
+
+
+def make_mixed_bills(amounts_modes: list[tuple[float, str]]) -> list[BillInput]:
+    return [
+        BillInput(id=f"b{i}", category_name="Cat", name="", amount=a, date="2026-06-01", split_mode=m)
+        for i, (a, m) in enumerate(amounts_modes)
+    ]
 
 
 def make_stays(people: list[PersonInput]) -> dict[str, int]:
@@ -52,6 +62,61 @@ class TestProportionalSplit:
         bills = make_bills(45_000)
         result = compute_split(people, bills, stays)
         assert abs(result.per_person[0].amount - 45_000) < 0.01
+
+
+class TestEqualSplit:
+    def test_equal_split_ignores_days(self):
+        """⚖️ 50/50 bill: both pay exactly half regardless of days."""
+        people = make_people(("Juan", 5), ("Val", 25))
+        stays = make_stays(people)
+        bills = make_bills(120_000, split_mode="equal")
+        result = compute_split(people, bills, stays)
+        for p in result.per_person:
+            assert abs(p.amount - 60_000) < 0.01
+
+    def test_equal_split_three_people(self):
+        people = make_people(("A", 10), ("B", 20), ("C", 0))
+        stays = make_stays(people)
+        bills = make_bills(90_000, split_mode="equal")
+        result = compute_split(people, bills, stays)
+        for p in result.per_person:
+            assert abs(p.amount - 30_000) < 0.01
+
+    def test_equal_split_bill_detail_has_split_mode(self):
+        people = make_people(("A", 10), ("B", 10))
+        stays = make_stays(people)
+        bills = make_bills(50_000, split_mode="equal")
+        result = compute_split(people, bills, stays)
+        assert result.bill_details[0].split_mode == "equal"
+
+
+class TestMixedSplit:
+    def test_mixed_bills(self):
+        """One proportional bill + one equal bill in the same month."""
+        people = make_people(("Juan", 20), ("Val", 10))
+        stays = make_stays(people)
+        # Internet 50/50: each pays 30k
+        # Electricity proportional (20/30 vs 10/30): Juan 40k, Val 20k
+        bills = make_mixed_bills([(60_000, "equal"), (60_000, "proportional")])
+        result = compute_split(people, bills, stays)
+
+        juan = next(p for p in result.per_person if p.id == "p0")
+        val = next(p for p in result.per_person if p.id == "p1")
+
+        # Internet: 30k each
+        # Electricity: Juan 40k (20/30), Val 20k (10/30)
+        assert abs(juan.amount - 70_000) < 0.01
+        assert abs(val.amount - 50_000) < 0.01
+
+    def test_bill_details_count_matches(self):
+        people = make_people(("A", 15), ("B", 15))
+        stays = make_stays(people)
+        bills = make_mixed_bills([(10_000, "equal"), (20_000, "proportional"), (30_000, "equal")])
+        result = compute_split(people, bills, stays)
+        assert len(result.bill_details) == 3
+        assert result.bill_details[0].split_mode == "equal"
+        assert result.bill_details[1].split_mode == "proportional"
+        assert result.bill_details[2].split_mode == "equal"
 
 
 class TestRounding:

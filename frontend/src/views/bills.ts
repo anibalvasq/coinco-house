@@ -36,7 +36,12 @@ export async function renderBills(
              color:var(--text-secondary);flex-shrink:0">${cat?.name[0] || "?"}</div>
         <div data-edit="${b.id}" style="flex:1;min-width:0;cursor:pointer">
           <div style="font-size:14.5px;font-weight:600">${displayName}</div>
-          <div style="font-size:12px;color:var(--text-caption)">${cat?.name || ""} · ${dateLabel}</div>
+          <div style="font-size:12px;color:var(--text-caption);display:flex;align-items:center;gap:6px">
+            <span>${cat?.name || ""} · ${dateLabel}</span>
+            ${b.split_mode === "equal"
+              ? `<span style="font-size:10px;font-weight:700;background:oklch(0.93 0.06 160);color:oklch(0.40 0.10 160);border-radius:5px;padding:1px 5px">⚖️ 50/50</span>`
+              : ""}
+          </div>
         </div>
         <div style="font-weight:700;font-size:14.5px">${fmtCLP(b.amount)}</div>
         <button data-delete="${b.id}" style="border:none;background:none;color:oklch(0.65 0.02 25);cursor:pointer;font-size:17px;padding:4px">✕</button>
