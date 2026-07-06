@@ -49,6 +49,15 @@ export function openPersonModal(
           ${editing ? `<div style="font-size:12px;color:var(--text-caption);margin-top:4px">Deja en blanco para no cambiar el PIN</div>` : ""}
         </div>
 
+        <div class="form-group">
+          <div class="form-label">Email (para resúmenes automáticos)</div>
+          <input id="person-email" class="form-input" type="email" inputmode="email"
+            placeholder="nombre@correo.com" value="${editing?.email || ""}">
+          <div style="font-size:11px;color:var(--text-caption);margin-top:4px">
+            Recibirá el resumen semanal y el cierre mensual. Opcional.
+          </div>
+        </div>
+
         <div style="display:flex;gap:10px;margin-top:8px;${editing && canDelete ? "justify-content:space-between" : "justify-content:flex-end"}">
           ${editing && canDelete ? `<button id="person-delete" class="btn-destructive">Eliminar</button>` : ""}
           <div style="display:flex;gap:10px">
@@ -88,15 +97,16 @@ export function openPersonModal(
     if (el.id === "person-save") {
       const name = (document.getElementById("person-name") as HTMLInputElement).value.trim();
       const pin = (document.getElementById("person-pin") as HTMLInputElement).value.replace(/\D/g, "").slice(0, 4);
+      const email = (document.getElementById("person-email") as HTMLInputElement).value.trim();
       if (!name) return;
       try {
         if (editing) {
-          const payload: Partial<{ name: string; color: string; pin: string }> = { name, color: selectedColor.value };
+          const payload: Partial<{ name: string; color: string; pin: string; email: string }> = { name, color: selectedColor.value, email };
           if (pin.length === 4) payload.pin = pin;
           await api.updatePerson(editing.id, payload);
         } else {
           if (pin.length !== 4) { alert("El PIN debe tener 4 dígitos"); return; }
-          await api.createPerson({ name, color: selectedColor.value, pin });
+          await api.createPerson({ name, color: selectedColor.value, pin, ...(email ? { email } : {}) });
         }
         scrim.remove(); onSaved();
       } catch (err) { console.error(err); }

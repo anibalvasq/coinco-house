@@ -13,12 +13,14 @@ class PersonCreate(BaseModel):
     name: str
     color: str
     pin: str  # 4-digit plain PIN, will be hashed
+    email: str | None = None
 
 
 class PersonUpdate(BaseModel):
     name: str | None = None
     color: str | None = None
     pin: str | None = None  # if provided, will be hashed
+    email: str | None = None
 
 
 def _sanitize_pin(pin: str) -> str:
@@ -45,7 +47,7 @@ def list_people():
 def create_person(body: PersonCreate, session: dict = Depends(get_current_session)):
     pin = _sanitize_pin(body.pin)
     pin_hash = hash_pin(pin)
-    person = repo.create_person(session["household_id"], body.name, body.color, pin_hash)
+    person = repo.create_person(session["household_id"], body.name, body.color, pin_hash, body.email)
     return _public(person)
 
 
@@ -58,6 +60,8 @@ def update_person(person_id: str, body: PersonUpdate, session: dict = Depends(ge
         fields["color"] = body.color
     if body.pin is not None:
         fields["pin_hash"] = hash_pin(_sanitize_pin(body.pin))
+    if body.email is not None:
+        fields["email"] = body.email if body.email.strip() else None
     if not fields:
         raise HTTPException(status_code=400, detail="No fields to update")
     person = repo.update_person(person_id, session["household_id"], **fields)

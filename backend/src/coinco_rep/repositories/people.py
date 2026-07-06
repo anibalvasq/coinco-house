@@ -15,14 +15,19 @@ def get_person(person_id: str, household_id: str) -> dict | None:
     return res.data
 
 
-def create_person(household_id: str, name: str, color: str, pin_hash: str) -> dict:
+def create_person(
+    household_id: str, name: str, color: str, pin_hash: str, email: str | None = None
+) -> dict:
     db = get_db()
-    res = db.table("people").insert({
+    payload: dict = {
         "household_id": household_id,
         "name": name,
         "color": color,
         "pin_hash": pin_hash,
-    }).execute()
+    }
+    if email:
+        payload["email"] = email
+    res = db.table("people").insert(payload).execute()
     return res.data[0]
 
 

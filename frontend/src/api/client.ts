@@ -35,9 +35,9 @@ export const api = {
 
   // People
   listPeople: () => request<Person[]>("GET", "/people"),
-  createPerson: (data: { name: string; color: string; pin: string }) =>
+  createPerson: (data: { name: string; color: string; pin: string; email?: string }) =>
     request<Person>("POST", "/people", data),
-  updatePerson: (id: string, data: Partial<{ name: string; color: string; pin: string }>) =>
+  updatePerson: (id: string, data: Partial<{ name: string; color: string; pin: string; email: string }>) =>
     request<Person>("PATCH", `/people/${id}`, data),
   deletePerson: (id: string) => request<void>("DELETE", `/people/${id}`),
 
@@ -72,6 +72,7 @@ export interface Person {
   id: string;
   name: string;
   color: string;
+  email?: string;
 }
 
 export interface Category {

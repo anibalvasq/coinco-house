@@ -1,0 +1,43 @@
+services:
+  # ── Weekly summary email ─────────────────────────────────────────────────
+  # Runs every Sunday at 18:00 UTC (≈ 14-15h Chile depending on DST).
+  - type: cron
+    name: coinco-weekly-email
+    runtime: python
+    rootDir: backend
+    schedule: "0 18 * * 0"
+    buildCommand: pip install poetry && poetry install --only main
+    startCommand: poetry run python scripts/weekly_email.py
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: HOUSEHOLD_ID
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+
+  # ── Monthly close-out email ──────────────────────────────────────────────
+  # Runs every day at 20:00 UTC; the script self-exits unless it's the last
+  # day of the month (Render cron doesn't support the 'L' day expression).
+  - type: cron
+    name: coinco-monthly-email
+    runtime: python
+    rootDir: backend
+    schedule: "0 20 * * *"
+    buildCommand: pip install poetry && poetry install --only main
+    startCommand: poetry run python scripts/monthly_email.py
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: HOUSEHOLD_ID
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        sync: false

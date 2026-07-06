@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     jwt_expire_hours: int = 72
     household_id: str = ""
     cors_origins: str = "http://localhost:5173,http://localhost:4173"
+    resend_api_key: str = ""
+    from_email: str = "CoinCo House <onboarding@resend.dev>"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
