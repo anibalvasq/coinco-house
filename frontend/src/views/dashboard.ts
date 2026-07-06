@@ -67,16 +67,21 @@ export async function renderDashboard(
       </div>`;
   }
 
+  // Effective share based on actual amounts — respects per-bill split_mode
+  const effectivePcts = data.total_amount > 0
+    ? data.split_preview.map(p => (p.amount / data.total_amount) * 100)
+    : data.split_preview.map(() => 100 / data.split_preview.length);
+
   const donut = buildDonutChart(
-    data.split_preview.map(p => ({ color: p.color, pct: p.pct }))
+    data.split_preview.map((p, i) => ({ color: p.color, pct: effectivePcts[i] / 100 }))
   );
 
-  const legend = data.split_preview.map(p => `
+  const legend = data.split_preview.map((p, i) => `
     <div style="display:flex;align-items:center;gap:10px">
       <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${p.name}</div>
-        <div style="font-size:11px;color:var(--text-caption)">${(p.pct * 100).toFixed(1)}%</div>
+        <div style="font-size:11px;color:var(--text-caption)">${effectivePcts[i].toFixed(1)}%</div>
       </div>
       <div style="font-size:14px;font-weight:700">${p.amount_fmt}</div>
     </div>`).join("");

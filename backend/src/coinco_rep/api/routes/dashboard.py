@@ -39,6 +39,7 @@ def get_dashboard(
             name=b["name"],
             amount=float(b["amount"]),
             date=b["date"],
+            split_mode=b.get("split_mode", "proportional"),
         )
         for b in raw_bills
     ]
