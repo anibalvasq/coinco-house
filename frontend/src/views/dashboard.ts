@@ -1,6 +1,39 @@
 import { api, DashboardData } from "../api/client.js";
 import { initial } from "../state.js";
 
+/**
+ * SVG donut chart built with stroke-dasharray/dashoffset — no external libs.
+ * r=54 → circumference = 2π×54 ≈ 339.29
+ */
+function buildDonutChart(slices: { color: string; pct: number }[]): string {
+  const R = 54;
+  const C = 2 * Math.PI * R;
+  const GAP = 3; // gap between slices in px
+  const cx = 70, cy = 70;
+
+  let offset = 0; // tracks dashoffset rotation (starts at top: -C/4)
+  const arcs = slices.map(s => {
+    const arcLen = Math.max(0, s.pct * C - GAP);
+    const svg = `<circle
+      cx="${cx}" cy="${cy}" r="${R}"
+      fill="none"
+      stroke="${s.color}"
+      stroke-width="16"
+      stroke-dasharray="${arcLen} ${C - arcLen}"
+      stroke-dashoffset="${-(offset - C / 4)}"
+      stroke-linecap="round"
+    />`;
+    offset += s.pct * C;
+    return svg;
+  });
+
+  return `
+    <svg width="140" height="140" viewBox="0 0 140 140" style="display:block">
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="oklch(0.93 0.01 75)" stroke-width="16"/>
+      ${arcs.join("")}
+    </svg>`;
+}
+
 export async function renderDashboard(
   month: string,
   onNavigate: (route: string, opts?: { month?: string }) => void
@@ -12,19 +45,6 @@ export async function renderDashboard(
     if (e?.status === 401) return "logout";
     return null;
   }
-
-  const splitRows = data.split_preview.map(p => `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-      <div class="avatar" style="background:${p.color}">${initial(p.name)}</div>
-      <div style="flex:1">
-        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600">
-          <span>${p.name}</span><span>${p.amount_fmt}</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" style="width:${p.pct}%;background:${p.color}"></div>
-        </div>
-      </div>
-    </div>`).join("");
 
   const recentRows = data.recent_bills.map(b => `
     <div class="list-row">
@@ -47,6 +67,20 @@ export async function renderDashboard(
       </div>`;
   }
 
+  const donut = buildDonutChart(
+    data.split_preview.map(p => ({ color: p.color, pct: p.pct }))
+  );
+
+  const legend = data.split_preview.map(p => `
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary)">${p.name}</div>
+        <div style="font-size:11px;color:var(--text-caption)">${(p.pct * 100).toFixed(1)}%</div>
+      </div>
+      <div style="font-size:14px;font-weight:700">${p.amount_fmt}</div>
+    </div>`).join("");
+
   return `
     <div class="hero-card">
       <div class="hero-total-label">Total gastado</div>
@@ -55,9 +89,16 @@ export async function renderDashboard(
     </div>
 
     <div class="section-title">Reparto rápido</div>
-    <div class="card" style="padding:18px">
-      ${splitRows}
-      <button id="dash-split-btn" class="btn-outline" style="width:100%;padding:12px">Ver reparto completo →</button>
+    <div class="card" style="padding:20px 18px">
+      <div style="display:flex;align-items:center;gap:20px">
+        <div style="position:relative;flex-shrink:0">
+          ${donut}
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+          ${legend}
+        </div>
+      </div>
+      <button id="dash-split-btn" class="btn-outline" style="width:100%;padding:12px;margin-top:18px">Ver reparto completo →</button>
     </div>
 
     ${data.recent_bills.length ? `
