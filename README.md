@@ -99,6 +99,23 @@ Ejecuta `001_initial_schema.sql` en el Supabase del proyecto de producción **an
 
 ---
 
+## iOS y PWA
+
+La app puede instalarse en iPhone de dos formas:
+
+1. **PWA** — Safari → Agregar a pantalla de inicio (sin App Store)
+2. **App Store** — Capacitor + Xcode (requiere Mac y cuenta Apple Developer)
+
+Guía completa: **[docs/ios.md](docs/ios.md)**
+
+```bash
+cd frontend
+cp .env.mobile.example .env.mobile   # configurar VITE_API_BASE_URL
+npm run cap:ios                      # build + sync (en Mac: npx cap open ios)
+```
+
+---
+
 ## Estructura del proyecto
 
 ```
@@ -136,6 +153,8 @@ coinco_rep/
 | `JWT_SECRET` | Secret para firmar tokens JWT (≥32 chars) |
 | `HOUSEHOLD_ID` | UUID del hogar seed |
 | `CORS_ORIGINS` | Orígenes permitidos, comma-separated |
+| `COOKIE_SECURE` | `true` en prod con app iOS bundled |
+| `COOKIE_SAMESITE` | `none` para app iOS bundled (con `COOKIE_SECURE=true`) |
 | `JWT_EXPIRE_HOURS` | Duración sesión (default: 72h) |
 
 ---

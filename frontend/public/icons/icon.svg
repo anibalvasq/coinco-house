@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CoinCo House">
+  <rect width="512" height="512" rx="96" fill="#29b6f6"/>
+  <path fill="#fff" d="M256 120 128 248v184h96V312h64v120h96V248Z"/>
+  <circle cx="256" cy="200" r="28" fill="#fff" opacity="0.9"/>
+</svg>

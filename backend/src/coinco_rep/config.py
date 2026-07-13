@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     from_email: str = "CoinCo House <onboarding@resend.dev>"
     cron_secret: str = ""  # must match CRON_SECRET in Vercel env vars
+    cookie_secure: bool = False
+    cookie_samesite: str = "lax"  # lax | none | strict — use "none" + secure for bundled iOS
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

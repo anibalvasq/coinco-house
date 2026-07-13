@@ -26,8 +26,8 @@ def login(body: LoginRequest, response: Response):
         key="session",
         value=token,
         httponly=True,
-        samesite="lax",
-        secure=False,  # set True in prod via env check
+        samesite=settings.cookie_samesite,
+        secure=settings.cookie_secure,
         max_age=72 * 3600,
         path="/",
     )

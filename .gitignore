@@ -2,6 +2,8 @@
 .env
 *.env.local
 *.env.production
+frontend/.env.mobile
+frontend/.env.mobile.local
 
 # Python
 __pycache__/
@@ -15,9 +17,11 @@ dist/
 # Node
 node_modules/
 frontend/dist/
+frontend/ios/
+frontend/android/
 
-# Vercel build output (generated server-side, not committed)
-public/
+# Vercel build output at repo root (generated server-side, not committed)
+/public/
 
 # Misc
 .DS_Store

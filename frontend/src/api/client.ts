@@ -1,4 +1,5 @@
-const BASE = "/api/v1";
+// Web/Vercel: relative path. Bundled iOS/Android: set VITE_API_BASE_URL at build time.
+const BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "/api/v1";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {

@@ -1,4 +1,5 @@
 // tokens.css loaded via index.html <link>
+import { Capacitor } from "@capacitor/core";
 import { api, ApiError, Bill, Person } from "./api/client.js";
 import { AppState, Route, PeopleTab, currentMonthKey, shiftMonth, monthLabel, initial } from "./state.js";
 import { icons } from "./components/icons.js";
@@ -234,3 +235,10 @@ function startLoginFlow() {
 }
 
 boot();
+
+// Native shell polish (iOS/Android via Capacitor)
+if (Capacitor.isNativePlatform()) {
+  import("@capacitor/status-bar").then(({ StatusBar, Style }) => {
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+  });
+}
