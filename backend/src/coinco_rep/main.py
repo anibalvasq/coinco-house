@@ -1,7 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from coinco_rep.api.routes import auth, bills, categories, dashboard, history, people, split, stays
+from coinco_rep.api.routes import (
+    auth,
+    bills,
+    categories,
+    cron,
+    dashboard,
+    history,
+    people,
+    split,
+    stays,
+)
 from coinco_rep.config import settings
 
 app = FastAPI(title="Hogar Compartido API", version="0.1.0")
@@ -29,5 +39,6 @@ for router in [
     split.router,
     dashboard.router,
     history.router,
+    cron.router,
 ]:
     app.include_router(router, prefix="/api/v1")

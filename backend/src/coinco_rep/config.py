@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:4173"
     resend_api_key: str = ""
     from_email: str = "CoinCo House <onboarding@resend.dev>"
+    cron_secret: str = ""  # must match CRON_SECRET in Vercel env vars
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
