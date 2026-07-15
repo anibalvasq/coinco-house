@@ -30,6 +30,14 @@ def get_dashboard(
 
     has_bills = len(raw_bills) > 0
     total_amount = sum(float(b["amount"]) for b in raw_bills)
+    fixed_total = sum(float(b["amount"]) for b in raw_bills if b.get("fixed"))
+    variable_total = total_amount - fixed_total
+    if total_amount > 0:
+        fixed_pct = round(fixed_total / total_amount * 100, 1)
+        variable_pct = round(variable_total / total_amount * 100, 1)
+    else:
+        fixed_pct = 0.0
+        variable_pct = 0.0
 
     people = [PersonInput(id=p["id"], name=p["name"], color=p["color"], days=stays.get(p["id"], 0)) for p in all_people]
     bills = [
@@ -84,4 +92,12 @@ def get_dashboard(
         "split_preview": split_preview,
         "equal_split_warning": split.equal_split_warning,
         "recent_bills": recent_bills,
+        "fixed_variable": {
+            "fixed_total": fixed_total,
+            "fixed_total_fmt": fmt_clp(fixed_total),
+            "variable_total": variable_total,
+            "variable_total_fmt": fmt_clp(variable_total),
+            "fixed_pct": fixed_pct,
+            "variable_pct": variable_pct,
+        },
     }

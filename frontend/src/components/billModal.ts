@@ -25,6 +25,7 @@ export function openBillModal(
       date: editing.date,
       note: editing.note,
       split_mode: editing.split_mode ?? "proportional",
+      fixed: editing.fixed ?? false,
     } : {
       category_id: categories[0]?.id || "",
       name: "",
@@ -32,6 +33,7 @@ export function openBillModal(
       date: todayStr(),
       note: "",
       split_mode: "proportional",
+      fixed: false,
     };
 
     const scrim = document.createElement("div");
@@ -83,6 +85,26 @@ export function openBillModal(
         </div>
 
         <div class="form-group">
+          <div class="form-label">Tipo de gasto</div>
+          <div style="display:flex;gap:8px">
+            <button id="expense-fixed" type="button"
+              style="flex:1;padding:10px 8px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+                     border:2px solid ${draft.fixed ? "var(--accent)" : "oklch(0.88 0.01 75)"};
+                     background:${draft.fixed ? "oklch(0.97 0.02 250)" : "#fff"};
+                     color:${draft.fixed ? "var(--accent)" : "var(--text-secondary)"}">
+              Fijo
+            </button>
+            <button id="expense-variable" type="button"
+              style="flex:1;padding:10px 8px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+                     border:2px solid ${!draft.fixed ? "var(--accent)" : "oklch(0.88 0.01 75)"};
+                     background:${!draft.fixed ? "oklch(0.97 0.02 250)" : "#fff"};
+                     color:${!draft.fixed ? "var(--accent)" : "var(--text-secondary)"}">
+              Variable
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
           <div class="form-label">Forma de dividir</div>
           <div style="display:flex;gap:8px">
             <button id="split-proportional" class="split-mode-btn${draft.split_mode !== "equal" ? " active" : ""}"
@@ -119,6 +141,22 @@ export function openBillModal(
     document.body.appendChild(scrim);
     let selectedCatId = draft.category_id || categories[0]?.id || "";
     let selectedSplitMode: SplitMode = (draft.split_mode as SplitMode) || "proportional";
+    let selectedFixed = draft.fixed ?? false;
+
+    function setExpenseType(fixed: boolean) {
+      selectedFixed = fixed;
+      const fixedBtn = document.getElementById("expense-fixed") as HTMLButtonElement;
+      const varBtn = document.getElementById("expense-variable") as HTMLButtonElement;
+      fixedBtn.style.borderColor = fixed ? "var(--accent)" : "oklch(0.88 0.01 75)";
+      fixedBtn.style.background = fixed ? "oklch(0.97 0.02 250)" : "#fff";
+      fixedBtn.style.color = fixed ? "var(--accent)" : "var(--text-secondary)";
+      varBtn.style.borderColor = !fixed ? "var(--accent)" : "oklch(0.88 0.01 75)";
+      varBtn.style.background = !fixed ? "oklch(0.97 0.02 250)" : "#fff";
+      varBtn.style.color = !fixed ? "var(--accent)" : "var(--text-secondary)";
+    }
+
+    document.getElementById("expense-fixed")?.addEventListener("click", () => setExpenseType(true));
+    document.getElementById("expense-variable")?.addEventListener("click", () => setExpenseType(false));
 
     function setSplitMode(mode: SplitMode) {
       selectedSplitMode = mode;
@@ -191,9 +229,9 @@ export function openBillModal(
       if (!selectedCatId || isNaN(amount) || !date) return;
       try {
         if (editing) {
-          await api.updateBill(editing.id, { category_id: selectedCatId, name, amount, date, note, split_mode: selectedSplitMode });
+          await api.updateBill(editing.id, { category_id: selectedCatId, name, amount, date, note, split_mode: selectedSplitMode, fixed: selectedFixed });
         } else {
-          await api.createBill(month, { category_id: selectedCatId, name, amount, date, note, split_mode: selectedSplitMode });
+          await api.createBill(month, { category_id: selectedCatId, name, amount, date, note, split_mode: selectedSplitMode, fixed: selectedFixed });
         }
         document.getElementById("bill-modal-scrim")?.remove();
         onSaved();

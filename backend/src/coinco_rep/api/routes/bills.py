@@ -16,6 +16,7 @@ class BillCreate(BaseModel):
     date: str  # YYYY-MM-DD
     note: str = ""
     split_mode: str = "proportional"  # "proportional" | "equal"
+    fixed: bool = False
 
 
 class BillUpdate(BaseModel):
@@ -25,6 +26,7 @@ class BillUpdate(BaseModel):
     date: str | None = None
     note: str | None = None
     split_mode: str | None = None
+    fixed: bool | None = None
 
 
 @router.get("")
@@ -52,6 +54,7 @@ def create_bill(
         body.date,
         body.note,
         body.split_mode,
+        body.fixed,
     )
 
 

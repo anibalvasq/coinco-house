@@ -104,6 +104,48 @@ function fmtCLP(amount: number): string {
   }).format(Math.round(amount));
 }
 
+function buildFixedVariableCard(fv: DashboardData["fixed_variable"]): string {
+  const fixedWidth = fv.fixed_pct;
+  const variableWidth = fv.variable_pct;
+  const showFixed = fixedWidth > 0;
+  const showVariable = variableWidth > 0;
+
+  const barSegments = [
+    showFixed
+      ? `<div style="width:${fixedWidth}%;background:var(--accent);height:100%"></div>`
+      : "",
+    showVariable
+      ? `<div style="width:${variableWidth}%;background:oklch(0.90 0.01 75);height:100%"></div>`
+      : "",
+  ].join("");
+
+  const bar = showFixed || showVariable
+    ? `<div style="display:flex;height:14px;border-radius:999px;overflow:hidden;background:oklch(0.90 0.01 75)">${barSegments}</div>`
+    : `<div style="height:14px;border-radius:999px;background:oklch(0.90 0.01 75)"></div>`;
+
+  return `
+    <div class="section-title">Fijos vs. variables</div>
+    <div class="card" style="padding:18px">
+      ${bar}
+      <div style="display:flex;justify-content:space-between;margin-top:16px;gap:16px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>
+            <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">Fijos · ${fv.fixed_pct.toFixed(1)}%</span>
+          </div>
+          <div style="font-size:15px;font-weight:700">${fv.fixed_total_fmt}</div>
+        </div>
+        <div style="flex:1;text-align:right">
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:4px">
+            <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">Variables · ${fv.variable_pct.toFixed(1)}%</span>
+            <div style="width:8px;height:8px;border-radius:50%;background:oklch(0.90 0.01 75);flex-shrink:0"></div>
+          </div>
+          <div style="font-size:15px;font-weight:700">${fv.variable_total_fmt}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
 export async function renderDashboard(
   month: string,
   onNavigate: (route: string, opts?: { month?: string }) => void
@@ -176,6 +218,8 @@ export async function renderDashboard(
     </div>
 
     ${yearChart}
+
+    ${buildFixedVariableCard(data.fixed_variable)}
 
     <div class="section-title">Reparto rápido</div>
     <div class="card" style="padding:20px 18px">

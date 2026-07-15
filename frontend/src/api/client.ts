@@ -93,6 +93,7 @@ export interface Bill {
   note: string;
   month_key: string;
   split_mode: SplitMode;
+  fixed: boolean;
 }
 
 export interface BillCreate {
@@ -102,6 +103,7 @@ export interface BillCreate {
   date: string;
   note?: string;
   split_mode?: SplitMode;
+  fixed?: boolean;
 }
 
 export interface SplitResult {
@@ -144,6 +146,14 @@ export interface DashboardData {
   split_preview: { id: string; name: string; color: string; amount: number; amount_fmt: string; pct: number }[];
   equal_split_warning: boolean;
   recent_bills: { id: string; name: string; category_name: string; amount: number; amount_fmt: string; date: string; date_label: string }[];
+  fixed_variable: {
+    fixed_total: number;
+    fixed_total_fmt: string;
+    variable_total: number;
+    variable_total_fmt: string;
+    fixed_pct: number;
+    variable_pct: number;
+  };
 }
 
 export interface HistoryRow {

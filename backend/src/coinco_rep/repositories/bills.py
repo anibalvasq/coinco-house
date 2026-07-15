@@ -31,6 +31,7 @@ def create_bill(
     date: str,
     note: str = "",
     split_mode: str = "proportional",
+    fixed: bool = False,
 ) -> dict:
     db = get_db()
     res = db.table("bills").insert({
@@ -42,6 +43,7 @@ def create_bill(
         "date": date,
         "note": note,
         "split_mode": split_mode,
+        "fixed": fixed,
     }).execute()
     return res.data[0]
 
