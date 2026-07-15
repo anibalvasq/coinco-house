@@ -1,5 +1,9 @@
-import { api, DashboardData } from "../api/client.js";
-import { initial } from "../state.js";
+import { api, DashboardData, HistoryRow } from "../api/client.js";
+
+const MONTH_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const YEAR_BAR_MAX = 72;
+const YEAR_BAR_PEAK = "oklch(0.78 0.06 75)";
+const YEAR_BAR_EMPTY = "oklch(0.90 0.01 75)";
 
 /**
  * SVG donut chart built with stroke-dasharray/dashoffset — no external libs.
@@ -45,17 +49,76 @@ function buildDonutChart(slices: { color: string; pct: number }[]): string {
     </svg>`;
 }
 
+function buildYearChart(history: HistoryRow[], year: string, viewingMonth: string): string {
+  const totals = new Map<string, number>();
+  for (const row of history) {
+    if (row.month_key.startsWith(`${year}-`)) {
+      totals.set(row.month_key, row.total_amount);
+    }
+  }
+
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const key = `${year}-${String(i + 1).padStart(2, "0")}`;
+    return { key, label: MONTH_SHORT[i], amount: totals.get(key) ?? 0 };
+  });
+
+  const maxAmount = Math.max(...months.map(m => m.amount), 1);
+
+  const bars = months.map(m => {
+    const hasData = m.amount > 0;
+    const isCurrent = m.key === viewingMonth;
+    const height = hasData
+      ? Math.max(8, Math.round((m.amount / maxAmount) * YEAR_BAR_MAX))
+      : 4;
+    const bg = !hasData
+      ? YEAR_BAR_EMPTY
+      : isCurrent
+        ? "var(--accent)"
+        : YEAR_BAR_PEAK;
+    const title = hasData ? `${m.label} · ${fmtCLP(m.amount)}` : m.label;
+
+    return `
+      <button type="button" data-year-jump="${m.key}" title="${title}" aria-label="${title}"
+        style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;
+               border:none;background:none;padding:0;cursor:pointer;min-width:0">
+        <div style="height:${YEAR_BAR_MAX}px;display:flex;align-items:flex-end;width:100%;justify-content:center">
+          <div style="width:100%;max-width:22px;height:${height}px;border-radius:999px;background:${bg}"></div>
+        </div>
+        <span style="font-size:10px;color:${isCurrent ? "var(--accent)" : "var(--text-caption)"};
+                     font-weight:${isCurrent ? "700" : "500"}">${m.label}</span>
+      </button>`;
+  }).join("");
+
+  return `
+    <div class="section-title">Resumen ${year}</div>
+    <div class="card" style="padding:18px 14px 14px">
+      <div style="display:flex;align-items:flex-end;gap:4px">${bars}</div>
+    </div>`;
+}
+
+function fmtCLP(amount: number): string {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(Math.round(amount));
+}
+
 export async function renderDashboard(
   month: string,
   onNavigate: (route: string, opts?: { month?: string }) => void
 ): Promise<string | null> {
   let data: DashboardData;
+  let history: HistoryRow[];
   try {
-    data = await api.getDashboard(month);
+    [data, history] = await Promise.all([api.getDashboard(month), api.getHistory()]);
   } catch (e: any) {
     if (e?.status === 401) return "logout";
     return null;
   }
+
+  const year = month.split("-")[0];
+  const yearChart = buildYearChart(history, year, month);
 
   const recentRows = data.recent_bills.map(b => `
     <div class="list-row">
@@ -71,7 +134,15 @@ export async function renderDashboard(
 
   if (!data.has_bills) {
     return `
-      <div style="text-align:center;padding:60px 20px;background:#fff;border-radius:var(--radius-card);margin-top:8px;box-shadow:var(--shadow-card)">
+      <div class="hero-card">
+        <div class="hero-total-label">Total gastado</div>
+        <div class="hero-total-amount font-display">${data.total_amount_fmt}</div>
+        <div class="hero-subtitle">${data.bills_count_label}</div>
+      </div>
+
+      ${yearChart}
+
+      <div style="text-align:center;padding:40px 20px;background:#fff;border-radius:var(--radius-card);margin-top:4px;box-shadow:var(--shadow-card)">
         <div class="font-display" style="font-weight:700;font-size:17px;margin-bottom:8px">Aún no hay cuentas este mes</div>
         <div style="font-size:14px;color:var(--text-secondary);margin-bottom:20px">Registra luz, agua, internet o lo que gastes para calcular el reparto.</div>
         <button id="dash-add-btn" class="btn-accent">+ Agregar primera cuenta</button>
@@ -104,6 +175,8 @@ export async function renderDashboard(
       <div class="hero-subtitle">${data.bills_count_label}</div>
     </div>
 
+    ${yearChart}
+
     <div class="section-title">Reparto rápido</div>
     <div class="card" style="padding:20px 18px">
       <div style="display:flex;align-items:center;gap:20px">
@@ -128,8 +201,17 @@ export async function renderDashboard(
     </div>` : ""}`;
 }
 
-export function bindDashboardEvents(onNavigate: (route: string) => void, onAddBill: () => void) {
+export function bindDashboardEvents(
+  onNavigate: (route: string, opts?: { month?: string }) => void,
+  onAddBill: () => void,
+) {
   document.getElementById("dash-add-btn")?.addEventListener("click", onAddBill);
   document.getElementById("dash-split-btn")?.addEventListener("click", () => onNavigate("split"));
   document.getElementById("dash-bills-btn")?.addEventListener("click", () => onNavigate("bills"));
+  document.querySelectorAll("[data-year-jump]").forEach(el => {
+    el.addEventListener("click", () => {
+      const key = (el as HTMLElement).dataset.yearJump!;
+      onNavigate("dashboard", { month: key });
+    });
+  });
 }
