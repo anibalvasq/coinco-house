@@ -15,6 +15,32 @@ def get_person(person_id: str, household_id: str) -> dict | None:
     return res.data
 
 
+def get_person_by_google_sub(google_sub: str, household_id: str) -> dict | None:
+    db = get_db()
+    res = (
+        db.table("people")
+        .select("*")
+        .eq("google_sub", google_sub)
+        .eq("household_id", household_id)
+        .limit(1)
+        .execute()
+    )
+    rows = res.data or []
+    return rows[0] if rows else None
+
+
+def get_person_by_email(email: str, household_id: str) -> dict | None:
+    """Case-insensitive email lookup within a household."""
+    db = get_db()
+    res = db.table("people").select("*").eq("household_id", household_id).execute()
+    needle = email.strip().lower()
+    for row in res.data or []:
+        stored = (row.get("email") or "").strip().lower()
+        if stored and stored == needle:
+            return row
+    return None
+
+
 def create_person(
     household_id: str, name: str, color: str, pin_hash: str, email: str | None = None
 ) -> dict:

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     cron_secret: str = ""  # must match CRON_SECRET in Vercel env vars
     cookie_secure: bool = False
     cookie_samesite: str = "lax"  # lax | none | strict — use "none" + secure for bundled iOS
+    google_client_id: str = ""  # OAuth 2.0 Web client ID — enables Sign in with Google when set
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

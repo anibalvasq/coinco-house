@@ -29,7 +29,7 @@ def _sanitize_pin(pin: str) -> str:
 
 
 def _public(person: dict) -> dict:
-    return {k: v for k, v in person.items() if k != "pin_hash"}
+    return {k: v for k, v in person.items() if k not in ("pin_hash", "google_sub")}
 
 
 @router.get("")

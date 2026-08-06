@@ -20,8 +20,12 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
     credentials: "include",
   });
   if (!res.ok) {
-    const detail = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new ApiError(res.status, detail.detail ?? res.statusText);
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    const raw = body.detail ?? res.statusText;
+    const message = typeof raw === "string" ? raw : Array.isArray(raw)
+      ? raw.map((e: { msg?: string }) => e.msg ?? JSON.stringify(e)).join("; ")
+      : String(raw);
+    throw new ApiError(res.status, message);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as T;
@@ -29,8 +33,12 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
 
 export const api = {
   // Auth
+  authProviders: () =>
+    request<{ google: { enabled: boolean; client_id: string | null } }>("GET", "/auth/providers"),
   login: (person_id: string, pin: string) =>
     request<{ id: string; name: string; color: string }>("POST", "/auth/login", { person_id, pin }),
+  googleLogin: (credential: string) =>
+    request<{ id: string; name: string; color: string }>("POST", "/auth/google", { credential }),
   logout: () => request<void>("POST", "/auth/logout"),
   me: () => request<{ id: string; name: string; color: string }>("GET", "/auth/me"),
 

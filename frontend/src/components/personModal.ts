@@ -50,11 +50,11 @@ export function openPersonModal(
         </div>
 
         <div class="form-group">
-          <div class="form-label">Email (para resúmenes automáticos)</div>
+          <div class="form-label">Email (Gmail / resúmenes)</div>
           <input id="person-email" class="form-input" type="email" inputmode="email"
-            placeholder="nombre@correo.com" value="${editing?.email || ""}">
+            placeholder="nombre@gmail.com" value="${editing?.email || ""}">
           <div style="font-size:11px;color:var(--text-caption);margin-top:4px">
-            Recibirá el resumen semanal y el cierre mensual. Opcional.
+            Debe coincidir con su Gmail para iniciar sesión con Google. También recibe resúmenes por correo.
           </div>
         </div>
 

@@ -34,12 +34,7 @@ cp .env.example backend/.env
 
 ### 2. Crear esquema en Supabase
 
-En el **SQL Editor** de tu proyecto Supabase, ejecuta en orden:
-
-```
-supabase/migrations/001_initial_schema.sql
-supabase/migrations/002_seed_dev.sql   ← solo para desarrollo/demo
-```
+En el **SQL Editor** de tu proyecto Supabase, ejecuta en orden las migraciones de `supabase/migrations/` (incluye `006_people_google.sql` para Sign in with Google). El seed `002_seed_dev.sql` es solo para desarrollo/demo.
 
 El seed imprime el `HOUSEHOLD_ID` generado con `RAISE NOTICE`. Cópialo en `backend/.env`.
 
@@ -66,6 +61,16 @@ El Vite dev server redirige `/api/*` al backend en `:8000`.
 
 Con el seed activo, las personas son **Juan** y **Valentina**, PIN `1234` para ambas.
 
+### 6. Sign in with Google (opcional)
+
+1. En [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials, crea un cliente OAuth **Web application**.
+2. En **Authorized JavaScript origins** agrega `http://localhost:5173` y tu URL de Vercel.
+3. Copia el Client ID en `GOOGLE_CLIENT_ID` (`backend/.env` y variables de Vercel).
+4. En la app, edita cada persona y pon su **mismo Gmail** en el campo email.
+5. En el login aparece **Continuar con Google**; el PIN sigue disponible.
+
+Sin `GOOGLE_CLIENT_ID`, la app sigue solo con PIN.
+
 ---
 
 ## Tests
@@ -88,6 +93,7 @@ poetry run pytest tests/ -v
    - `JWT_SECRET`
    - `HOUSEHOLD_ID`
    - `CORS_ORIGINS` (p.ej. `https://coinco-rep.vercel.app`)
+  - `GOOGLE_CLIENT_ID` (opcional — Sign in with Google)
 3. Vercel lee el `vercel.json` de la raíz, que define dos **Services**: `frontend/` (build estático Vite) y `backend/` (función Python con el `app` de FastAPI expuesto en `backend/app.py`). Un `rewrite` enruta `/api/*` al backend y el resto al frontend.
 4. El frontend en producción hace fetch a `/api/v1/*` relativo → mismo dominio, sin problemas de CORS.
 
