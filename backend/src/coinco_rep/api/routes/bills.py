@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from coinco_rep.auth.dependencies import get_current_session
 from coinco_rep.domain.formatting import current_month_key
-from coinco_rep.push import notify_new_bill
+from coinco_rep.push import notify_bill_deleted, notify_bill_updated, notify_new_bill
 from coinco_rep.repositories import bills as repo
 
 logger = logging.getLogger(__name__)
@@ -32,6 +32,14 @@ class BillUpdate(BaseModel):
     note: str | None = None
     split_mode: str | None = None
     fixed: bool | None = None
+
+
+def _find_bill(bill_id: str, household_id: str) -> dict | None:
+    """Current bill row, for notifications; None if missing or the lookup fails."""
+    try:
+        return repo.get_bill(bill_id, household_id)
+    except Exception:
+        return None
 
 
 @router.get("")
@@ -77,9 +85,21 @@ def update_bill(
     fields = body.model_dump(exclude_none=True)
     if not fields:
         raise HTTPException(status_code=400, detail="No fields to update")
-    return repo.update_bill(bill_id, session["household_id"], **fields)
+    before = _find_bill(bill_id, session["household_id"])
+    bill = repo.update_bill(bill_id, session["household_id"], **fields)
+    try:
+        notify_bill_updated(session["household_id"], session["person_id"], before, bill)
+    except Exception:
+        logger.exception("Updated-bill push notification failed")
+    return bill
 
 
 @router.delete("/{bill_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_bill(bill_id: str, session: dict = Depends(get_current_session)):
+    bill = _find_bill(bill_id, session["household_id"])
     repo.delete_bill(bill_id, session["household_id"])
+    if bill:
+        try:
+            notify_bill_deleted(session["household_id"], session["person_id"], bill)
+        except Exception:
+            logger.exception("Deleted-bill push notification failed")

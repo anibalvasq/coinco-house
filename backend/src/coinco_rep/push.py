@@ -1,7 +1,7 @@
 """
 Web Push notifications for the PWA.
 
-- New bill: notify every other household member's devices.
+- New, edited or deleted bill: notify every other household member's devices.
 - Month close (last day): each person gets their own share of the month.
 
 Requires VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (see scripts/generate_vapid_keys.py).
@@ -61,8 +61,15 @@ def send_to_subscriptions(subs: list[dict], payload: dict) -> int:
     return delivered
 
 
-def notify_new_bill(household_id: str, actor_person_id: str, bill: dict) -> int:
-    """Tell the other household members that a bill was added."""
+def _bill_label(household_id: str, bill: dict) -> str:
+    return bill.get("name") or next(
+        (c["name"] for c in cat_repo.list_categories(household_id) if c["id"] == bill.get("category_id")),
+        "Gasto",
+    )
+
+
+def _notify_others(household_id: str, actor_person_id: str, bill: dict, verb: str, body: str | None = None) -> int:
+    """Notify every household member except the actor about a bill change."""
     subs = [
         s for s in subs_repo.list_for_household(household_id)
         if s["person_id"] != actor_person_id
@@ -71,16 +78,44 @@ def notify_new_bill(household_id: str, actor_person_id: str, bill: dict) -> int:
         return 0
 
     actor = people_repo.get_person(actor_person_id, household_id) or {}
-    label = bill.get("name") or next(
-        (c["name"] for c in cat_repo.list_categories(household_id) if c["id"] == bill.get("category_id")),
-        "Gasto",
-    )
     return send_to_subscriptions(subs, {
-        "title": f"{actor.get('name', 'Alguien')} agregó un gasto",
-        "body": f"{label} · {fmt_clp(float(bill['amount']))}",
+        "title": f"{actor.get('name', 'Alguien')} {verb} un gasto",
+        "body": body or f"{_bill_label(household_id, bill)} · {fmt_clp(float(bill['amount']))}",
         "tag": f"bill-{bill['id']}",
         "url": "/",
     })
+
+
+def notify_new_bill(household_id: str, actor_person_id: str, bill: dict) -> int:
+    """Tell the other household members that a bill was added."""
+    return _notify_others(household_id, actor_person_id, bill, "agregó")
+
+
+# Fields compared to tell a real edit from saving the form unchanged
+_VISIBLE_FIELDS = ("category_id", "name", "amount", "date", "note", "split_mode", "fixed")
+
+
+def notify_bill_updated(household_id: str, actor_person_id: str, before: dict | None, after: dict) -> int:
+    """Tell the others a bill was edited. Saving without changes sends nothing."""
+    if before is not None:
+        changed = [
+            f for f in _VISIBLE_FIELDS
+            if (float(before[f]) != float(after[f]) if f == "amount" else before.get(f) != after.get(f))
+        ]
+        if not changed:
+            return 0
+    body = None
+    if before is not None and float(before["amount"]) != float(after["amount"]):
+        body = (
+            f"{_bill_label(household_id, after)} · "
+            f"{fmt_clp(float(before['amount']))} → {fmt_clp(float(after['amount']))}"
+        )
+    return _notify_others(household_id, actor_person_id, after, "editó", body)
+
+
+def notify_bill_deleted(household_id: str, actor_person_id: str, bill: dict) -> int:
+    """Tell the other household members that a bill was deleted."""
+    return _notify_others(household_id, actor_person_id, bill, "eliminó")
 
 
 def notify_monthly_closeout(household_id: str, month_key: str, preview: list[dict], total: float) -> int:

@@ -189,3 +189,68 @@ class TestMonthlyCron:
                 "status": "ok", "sent_to": ["a@x.cl"], "count": 1, "push_delivered": 2,
             }
             email.assert_called_once_with(HH, "2026-10")
+
+
+class TestNotifyBillChanges:
+    BEFORE = {
+        "id": "b1", "name": "Luz", "amount": 45000.0, "category_id": "c1", "date": "2026-10-05",
+        "note": "", "split_mode": "proportional", "fixed": False,
+    }
+
+    def _run(self, fn, *args):
+        with patch(
+            "coinco_rep.push.subs_repo.list_for_household", return_value=[_sub("juan"), _sub("vale")]
+        ), patch(
+            "coinco_rep.push.people_repo.get_person", return_value={"name": "Juan"}
+        ), patch("coinco_rep.push.send_to_subscriptions", return_value=1) as send:
+            fn(HH, "juan", *args)
+            return send
+
+    def test_edit_shows_amount_change(self):
+        after = {**self.BEFORE, "amount": "50000.00"}
+        send = self._run(push.notify_bill_updated, self.BEFORE, after)
+        subs, payload = send.call_args.args
+        assert {s["person_id"] for s in subs} == {"vale"}
+        assert payload["title"] == "Juan editó un gasto"
+        assert payload["body"] == "Luz · $45.000 → $50.000"
+
+    def test_edit_other_field_shows_current_amount(self):
+        after = {**self.BEFORE, "name": "Luz octubre"}
+        send = self._run(push.notify_bill_updated, self.BEFORE, after)
+        assert send.call_args.args[1]["body"] == "Luz octubre · $45.000"
+
+    def test_saving_unchanged_bill_sends_nothing(self):
+        after = {**self.BEFORE, "amount": "45000.00"}
+        send = self._run(push.notify_bill_updated, self.BEFORE, after)
+        send.assert_not_called()
+
+    def test_delete(self):
+        send = self._run(push.notify_bill_deleted, self.BEFORE)
+        payload = send.call_args.args[1]
+        assert payload["title"] == "Juan eliminó un gasto"
+        assert payload["body"] == "Luz · $45.000"
+
+
+class TestBillRoutesNotify:
+    def _client(self) -> TestClient:
+        client = TestClient(app)
+        client.cookies.set("session", create_session_token("juan", HH))
+        return client
+
+    def test_delete_notifies_with_bill_before_deletion(self):
+        bill = {"id": "b1", "name": "Luz", "amount": 1000}
+        with patch("coinco_rep.api.routes.bills.repo.get_bill", return_value=bill), \
+                patch("coinco_rep.api.routes.bills.repo.delete_bill") as delete, \
+                patch("coinco_rep.api.routes.bills.notify_bill_deleted") as notify:
+            res = self._client().delete("/api/v1/bills/b1")
+            assert res.status_code == 204
+            delete.assert_called_once_with("b1", HH)
+            notify.assert_called_once_with(HH, "juan", bill)
+
+    def test_update_succeeds_even_if_notification_fails(self):
+        with patch("coinco_rep.api.routes.bills.repo.get_bill", side_effect=Exception("db")), \
+                patch("coinco_rep.api.routes.bills.repo.update_bill", return_value={"id": "b1"}), \
+                patch("coinco_rep.api.routes.bills.notify_bill_updated", side_effect=Exception("push")):
+            res = self._client().patch("/api/v1/bills/b1", json={"amount": 2000})
+            assert res.status_code == 200
+            assert res.json() == {"id": "b1"}
