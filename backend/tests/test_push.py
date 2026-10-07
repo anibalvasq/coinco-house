@@ -70,13 +70,15 @@ class TestNotifyNewBill:
             return_value=[_sub("juan"), _sub("vale"), _sub("vale", 2)],
         ), patch(
             "coinco_rep.push.people_repo.get_person", return_value={"name": "Juan"}
+        ), patch(
+            "coinco_rep.push.cat_repo.list_categories", return_value=[{"id": "c1", "name": "Servicios"}]
         ), patch("coinco_rep.push.send_to_subscriptions", return_value=2) as send:
             push.notify_new_bill(HH, "juan", bill)
             subs, payload = send.call_args.args
             assert {s["person_id"] for s in subs} == {"juan", "vale"}
             assert len(subs) == 3
             assert payload["title"] == "Juan agregó un gasto"
-            assert payload["body"].startswith("Luz · ")
+            assert payload["body"] == "Servicios · Luz · $45.000"
 
     def test_falls_back_to_category_name(self):
         bill = {"id": "b1", "name": "", "amount": 1000, "category_id": "c1"}
@@ -191,6 +193,27 @@ class TestMonthlyCron:
             email.assert_called_once_with(HH, "2026-10")
 
 
+class TestBillLabel:
+    def _label(self, bill, categories=({"id": "c1", "name": "Luz"},)):
+        with patch("coinco_rep.push.cat_repo.list_categories", return_value=list(categories)):
+            return push._bill_label(HH, bill)
+
+    def test_category_and_name(self):
+        assert self._label({"category_id": "c1", "name": "Factura julio"}) == "Luz · Factura julio"
+
+    def test_category_only(self):
+        assert self._label({"category_id": "c1", "name": ""}) == "Luz"
+
+    def test_name_equal_to_category_is_not_repeated(self):
+        assert self._label({"category_id": "c1", "name": "luz"}) == "Luz"
+
+    def test_name_without_category(self):
+        assert self._label({"category_id": None, "name": "Gas"}) == "Gas"
+
+    def test_nothing(self):
+        assert self._label({"category_id": None, "name": ""}) == "Gasto"
+
+
 class TestNotifyBillChanges:
     BEFORE = {
         "id": "b1", "name": "Luz", "amount": 45000.0, "category_id": "c1", "date": "2026-10-05",
@@ -202,6 +225,8 @@ class TestNotifyBillChanges:
             "coinco_rep.push.subs_repo.list_for_household", return_value=[_sub("juan"), _sub("vale")]
         ), patch(
             "coinco_rep.push.people_repo.get_person", return_value={"name": "Juan"}
+        ), patch(
+            "coinco_rep.push.cat_repo.list_categories", return_value=[{"id": "c1", "name": "Servicios"}]
         ), patch("coinco_rep.push.send_to_subscriptions", return_value=1) as send:
             fn(HH, "juan", *args)
             return send
@@ -212,12 +237,12 @@ class TestNotifyBillChanges:
         subs, payload = send.call_args.args
         assert {s["person_id"] for s in subs} == {"juan", "vale"}
         assert payload["title"] == "Juan editó un gasto"
-        assert payload["body"] == "Luz · $45.000 → $50.000"
+        assert payload["body"] == "Servicios · Luz · $45.000 → $50.000"
 
     def test_edit_other_field_shows_current_amount(self):
         after = {**self.BEFORE, "name": "Luz octubre"}
         send = self._run(push.notify_bill_updated, self.BEFORE, after)
-        assert send.call_args.args[1]["body"] == "Luz octubre · $45.000"
+        assert send.call_args.args[1]["body"] == "Servicios · Luz octubre · $45.000"
 
     def test_saving_unchanged_bill_sends_nothing(self):
         after = {**self.BEFORE, "amount": "45000.00"}
@@ -228,7 +253,7 @@ class TestNotifyBillChanges:
         send = self._run(push.notify_bill_deleted, self.BEFORE)
         payload = send.call_args.args[1]
         assert payload["title"] == "Juan eliminó un gasto"
-        assert payload["body"] == "Luz · $45.000"
+        assert payload["body"] == "Servicios · Luz · $45.000"
 
 
 class TestBillRoutesNotify:

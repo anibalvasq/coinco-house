@@ -62,10 +62,14 @@ def send_to_subscriptions(subs: list[dict], payload: dict) -> int:
 
 
 def _bill_label(household_id: str, bill: dict) -> str:
-    return bill.get("name") or next(
+    """'Luz · Factura julio', or just the category / name when only one is set."""
+    category = next(
         (c["name"] for c in cat_repo.list_categories(household_id) if c["id"] == bill.get("category_id")),
-        "Gasto",
+        "",
     )
+    name = (bill.get("name") or "").strip()
+    parts = [category] + ([name] if name and name.lower() != category.lower() else [])
+    return " · ".join(p for p in parts if p) or "Gasto"
 
 
 def _notify_household(household_id: str, actor_person_id: str, bill: dict, verb: str, body: str | None = None) -> int:
