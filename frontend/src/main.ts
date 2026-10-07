@@ -11,6 +11,7 @@ import { renderSplit, bindSplitEvents } from "./views/split.js";
 import { renderHistory, bindHistoryEvents } from "./views/history.js";
 import { openBillModal } from "./components/billModal.js";
 import { openPersonModal } from "./components/personModal.js";
+import { getPushStatus, enablePush, disablePush, syncPushSubscription } from "./push.js";
 
 // ── App state ────────────────────────────────────────────────
 const state: AppState = {
@@ -21,6 +22,7 @@ const state: AppState = {
   modal: null,
   editingId: null,
   showUserMenu: false,
+  pushStatus: null,
 };
 
 const SCREEN_TITLES: Record<Route, string> = {
@@ -42,6 +44,28 @@ const NAV_ITEMS: { id: Route; label: string; icon: string }[] = [
 const showMonthSelectorOn: Route[] = ["dashboard", "bills", "split"];
 
 // ── Render helpers ───────────────────────────────────────────
+const MENU_BTN = `width:100%;text-align:left;padding:9px 10px;border:none;background:none;
+  border-radius:8px;font-family:var(--font-body);font-size:14px;color:var(--text-primary);cursor:pointer`;
+const MENU_NOTE = `padding:8px 10px;font-size:12px;line-height:1.4;color:var(--text-secondary)`;
+
+function buildPushMenu(): string {
+  switch (state.pushStatus) {
+    case "off":
+      return `<button id="push-enable-btn" style="${MENU_BTN}">🔔 Activar notificaciones</button>`;
+    case "on":
+      return `
+        <div style="${MENU_NOTE}">🔔 Notificaciones activadas</div>
+        <button id="push-test-btn" style="${MENU_BTN}">Enviar prueba</button>
+        <button id="push-disable-btn" style="${MENU_BTN}">Desactivar notificaciones</button>`;
+    case "denied":
+      return `<div style="${MENU_NOTE}">🔕 Las notificaciones están bloqueadas. Actívalas en los ajustes del navegador.</div>`;
+    case "ios-install":
+      return `<div style="${MENU_NOTE}">🔔 Para recibir notificaciones, agrega la app a tu pantalla de inicio: Compartir → Agregar a inicio.</div>`;
+    default:
+      return "";
+  }
+}
+
 function buildShell(): string {
   const showMonth = showMonthSelectorOn.includes(state.route) ||
     (state.route === "people" && state.peopleTab === "dias");
@@ -76,6 +100,7 @@ function buildShell(): string {
         ${state.showUserMenu ? `
         <div class="dropdown-menu">
           <div style="padding:8px 10px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid var(--divider2);margin-bottom:4px">${state.session?.name || ""}</div>
+          ${buildPushMenu()}
           <button id="logout-btn" style="width:100%;text-align:left;padding:9px 10px;border:none;background:none;
             border-radius:8px;font-family:var(--font-body);font-size:14px;color:var(--destructive);cursor:pointer">
             Cerrar sesión
@@ -190,6 +215,30 @@ function bindShellEvents() {
   document.getElementById("avatar-btn")?.addEventListener("click", () => {
     state.showUserMenu = !state.showUserMenu;
     rerender();
+    if (state.showUserMenu) {
+      getPushStatus().then((status) => {
+        state.pushStatus = status;
+        if (state.showUserMenu) rerender();
+      });
+    }
+  });
+  document.getElementById("push-enable-btn")?.addEventListener("click", async () => {
+    try {
+      state.pushStatus = await enablePush();
+    } catch {
+      alert("No se pudieron activar las notificaciones. Intenta de nuevo.");
+    }
+    rerender();
+  });
+  document.getElementById("push-disable-btn")?.addEventListener("click", async () => {
+    await disablePush();
+    state.pushStatus = "off";
+    rerender();
+  });
+  document.getElementById("push-test-btn")?.addEventListener("click", async () => {
+    state.showUserMenu = false;
+    rerender();
+    try { await api.pushTest(); } catch {}
   });
   document.getElementById("logout-btn")?.addEventListener("click", doLogout);
 
@@ -210,6 +259,8 @@ function navigate(route: string, opts?: { month?: string }) {
 }
 
 async function doLogout() {
+  // Shared phones: stop this device from receiving the previous person's notifications
+  try { await disablePush(); } catch {}
   try { await api.logout(); } catch {}
   state.session = null;
   startLoginFlow();
@@ -222,6 +273,7 @@ async function boot() {
     const me = await api.me();
     state.session = me;
     rerender();
+    void syncPushSubscription();
   } catch {
     startLoginFlow();
   }
@@ -231,6 +283,7 @@ function startLoginFlow() {
   renderLogin((session) => {
     state.session = session;
     rerender();
+    void syncPushSubscription();
   });
 }
 

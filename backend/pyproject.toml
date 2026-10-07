@@ -15,6 +15,7 @@ dependencies = [
   "python-dotenv>=1.0",
   "resend (>=2.0)",
   "google-auth>=2.29",
+  "pywebpush>=2.0",
 ]
 
 [tool.poetry]

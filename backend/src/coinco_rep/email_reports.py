@@ -87,7 +87,7 @@ def _daily_cumulative(bills: list[dict]) -> tuple[list[str], list[float]]:
 
 # ── Split calculation ────────────────────────────────────────────────────────
 
-def _compute_preview(household_id: str, month_key: str) -> tuple[list[dict], float, list[dict], dict]:
+def compute_month_preview(household_id: str, month_key: str) -> tuple[list[dict], float, list[dict], dict]:
     """Return (split_preview, total, raw_bills, categories)."""
     all_people = people_repo.list_people(household_id)
     raw_bills = bills_repo.list_bills(household_id, month_key)
@@ -118,6 +118,7 @@ def _compute_preview(household_id: str, month_key: str) -> tuple[list[dict], flo
 
     preview = [
         {
+            "id": p.id,
             "name": p.name,
             "color": p.color,
             "amount": p.amount,
@@ -254,7 +255,7 @@ def send_weekly_summary(household_id: str, month_key: str | None = None) -> list
         raise ValueError("RESEND_API_KEY not set")
 
     month_key = month_key or _current_month_key()
-    preview, total, raw_bills, categories = _compute_preview(household_id, month_key)
+    preview, total, raw_bills, categories = compute_month_preview(household_id, month_key)
 
     labels, values = _daily_cumulative(raw_bills)
     chart_url = _quickchart_line_url(labels, values) if labels else ""
@@ -283,7 +284,7 @@ def send_monthly_closeout(household_id: str, month_key: str | None = None) -> li
         raise ValueError("RESEND_API_KEY not set")
 
     month_key = month_key or _current_month_key()
-    preview, total, _, _ = _compute_preview(household_id, month_key)
+    preview, total, _, _ = compute_month_preview(household_id, month_key)
 
     all_people = people_repo.list_people(household_id)
     recipients = [(p["email"], p["name"]) for p in all_people if p.get("email")]

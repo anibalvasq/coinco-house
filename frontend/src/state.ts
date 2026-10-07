@@ -2,6 +2,8 @@
  * App-level UI state — not persisted to the DB.
  * Only session info is stored in an httpOnly cookie (managed by the backend).
  */
+import type { PushStatus } from "./push.js";
+
 export type Route = "dashboard" | "bills" | "people" | "split" | "history";
 export type PeopleTab = "personas" | "dias";
 export type Modal = "bill" | "person" | null;
@@ -14,6 +16,7 @@ export interface AppState {
   modal: Modal;
   editingId: string | null;
   showUserMenu: boolean;
+  pushStatus: PushStatus | null;  // loaded when the user menu opens
 }
 
 export function currentMonthKey(): string {

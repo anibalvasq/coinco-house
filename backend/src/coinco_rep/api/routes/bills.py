@@ -1,10 +1,15 @@
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
 from coinco_rep.auth.dependencies import get_current_session
 from coinco_rep.domain.formatting import current_month_key
+from coinco_rep.push import notify_new_bill
 from coinco_rep.repositories import bills as repo
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bills", tags=["bills"])
 
@@ -45,7 +50,7 @@ def create_bill(
     session: dict = Depends(get_current_session),
 ):
     month_key = month or current_month_key()
-    return repo.create_bill(
+    bill = repo.create_bill(
         session["household_id"],
         month_key,
         body.category_id,
@@ -56,6 +61,11 @@ def create_bill(
         body.split_mode,
         body.fixed,
     )
+    try:
+        notify_new_bill(session["household_id"], session["person_id"], bill)
+    except Exception:  # a failed notification must not fail the bill creation
+        logger.exception("New-bill push notification failed")
+    return bill
 
 
 @router.patch("/{bill_id}")

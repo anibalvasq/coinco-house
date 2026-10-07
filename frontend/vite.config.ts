@@ -28,6 +28,8 @@ export default defineConfig(({ mode }) => ({
         // Never serve the SPA shell for API calls or cron endpoints.
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
+        // Push notification handlers (public/push-sw.js)
+        importScripts: ["/push-sw.js"],
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>

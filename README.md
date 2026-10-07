@@ -34,7 +34,7 @@ cp .env.example backend/.env
 
 ### 2. Crear esquema en Supabase
 
-En el **SQL Editor** de tu proyecto Supabase, ejecuta en orden las migraciones de `supabase/migrations/` (incluye `006_people_google.sql` para Sign in with Google). El seed `002_seed_dev.sql` es solo para desarrollo/demo.
+En el **SQL Editor** de tu proyecto Supabase, ejecuta en orden las migraciones de `supabase/migrations/` (incluye `006_people_google.sql` para Sign in with Google y `007_push_subscriptions.sql` para notificaciones push). El seed `002_seed_dev.sql` es solo para desarrollo/demo.
 
 El seed imprime el `HOUSEHOLD_ID` generado con `RAISE NOTICE`. Cópialo en `backend/.env`.
 
@@ -94,6 +94,7 @@ poetry run pytest tests/ -v
    - `HOUSEHOLD_ID`
    - `CORS_ORIGINS` (p.ej. `https://coinco-rep.vercel.app`)
   - `GOOGLE_CLIENT_ID` (opcional — Sign in with Google)
+  - `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` (opcional — notificaciones push)
 3. Vercel lee el `vercel.json` de la raíz, que define dos **Services**: `frontend/` (build estático Vite) y `backend/` (función Python con el `app` de FastAPI expuesto en `backend/app.py`). Un `rewrite` enruta `/api/*` al backend y el resto al frontend.
 4. El frontend en producción hace fetch a `/api/v1/*` relativo → mismo dominio, sin problemas de CORS.
 
@@ -119,6 +120,24 @@ cd frontend
 cp .env.mobile.example .env.mobile   # configurar VITE_API_BASE_URL
 npm run cap:ios                      # build + sync (en Mac: npx cap open ios)
 ```
+
+### Notificaciones push (PWA)
+
+- **Gasto nuevo:** cuando alguien agrega un gasto, las demás personas del hogar reciben *"Juan agregó un gasto · Luz · $45.000"*.
+- **Cierre de mes:** el último día del mes (cron `/api/v1/cron/monthly`), cada persona recibe **su propio monto**: *"Cierre de octubre 2026 · Tu parte: $60.000"*.
+
+Configuración:
+
+1. Ejecuta `supabase/migrations/007_push_subscriptions.sql`.
+2. Genera las claves una sola vez (si las cambias, todos tendrán que reactivar las notificaciones):
+   ```bash
+   cd backend
+   poetry run python scripts/generate_vapid_keys.py
+   ```
+3. Copia `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` a `backend/.env` y a las variables de Vercel.
+4. En la app: avatar → **Activar notificaciones** → aceptar el permiso → **Enviar prueba**.
+
+Compatibilidad: Android y escritorio (Chrome, Edge, Firefox). En iPhone requiere iOS 16.4+ y la app **instalada en la pantalla de inicio**; en una pestaña de Safari el menú muestra cómo instalarla. No funciona dentro de la app nativa de Capacitor. Al cerrar sesión, el dispositivo deja de recibir notificaciones.
 
 ---
 
@@ -162,6 +181,8 @@ coinco_rep/
 | `COOKIE_SECURE` | `true` en prod con app iOS bundled |
 | `COOKIE_SAMESITE` | `none` para app iOS bundled (con `COOKIE_SECURE=true`) |
 | `JWT_EXPIRE_HOURS` | Duración sesión (default: 72h) |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Claves Web Push (`scripts/generate_vapid_keys.py`); sin ellas no hay notificaciones |
+| `VAPID_SUBJECT` | Contacto para los servicios push, `mailto:` o `https:` (opcional) |
 
 ---
 

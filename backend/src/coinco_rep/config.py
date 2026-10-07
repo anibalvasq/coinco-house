@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     cookie_samesite: str = "lax"  # lax | none | strict — use "none" + secure for bundled iOS
     google_client_id: str = ""  # OAuth 2.0 Web client ID — enables Sign in with Google when set
+    # Web Push (PWA notifications) — generate with backend/scripts/generate_vapid_keys.py
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:noreply@coinco-house.app"  # contact for push services (mailto: or https:)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

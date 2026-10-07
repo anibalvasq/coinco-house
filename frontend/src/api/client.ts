@@ -74,6 +74,12 @@ export const api = {
 
   // History
   getHistory: () => request<HistoryRow[]>("GET", "/history"),
+
+  // Push notifications
+  pushPublicKey: () => request<{ enabled: boolean; public_key: string | null }>("GET", "/push/public-key"),
+  pushSubscribe: (subscription: PushSubscriptionJSON) => request<void>("POST", "/push/subscribe", subscription),
+  pushUnsubscribe: (endpoint: string) => request<void>("POST", "/push/unsubscribe", { endpoint }),
+  pushTest: () => request<{ delivered: number }>("POST", "/push/test"),
 };
 
 // ── Shared types ────────────────────────────────────────────

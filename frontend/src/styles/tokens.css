@@ -387,5 +387,6 @@ body {
   box-shadow: var(--shadow-menu);
   padding: 8px;
   min-width: 160px;
+  max-width: 260px;
   z-index: 60;
 }

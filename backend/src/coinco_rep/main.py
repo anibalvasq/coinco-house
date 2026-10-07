@@ -9,6 +9,7 @@ from coinco_rep.api.routes import (
     dashboard,
     history,
     people,
+    push,
     split,
     stays,
 )
@@ -33,6 +34,7 @@ def health():
 for router in [
     auth.router,
     people.router,
+    push.router,
     categories.router,
     bills.router,
     stays.router,
