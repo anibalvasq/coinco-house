@@ -123,7 +123,7 @@ npm run cap:ios                      # build + sync (en Mac: npx cap open ios)
 
 ### Notificaciones push (PWA)
 
-- **Gastos:** cuando alguien agrega, edita o elimina un gasto, las demás personas del hogar reciben *"Juan agregó un gasto · Luz · $45.000"*. Al editar el monto se ve el cambio (*"Luz · $45.000 → $50.000"*); guardar sin cambios no avisa.
+- **Gastos:** cuando alguien agrega, edita o elimina un gasto, todas las personas del hogar (incluida quien hizo el cambio) reciben *"Juan agregó un gasto · Luz · $45.000"*. Al editar el monto se ve el cambio (*"Luz · $45.000 → $50.000"*); guardar sin cambios no avisa.
 - **Cierre de mes:** el último día del mes (cron `/api/v1/cron/monthly`), cada persona recibe **su propio monto**: *"Cierre de octubre 2026 · Tu parte: $60.000"*.
 
 Configuración:

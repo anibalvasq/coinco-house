@@ -63,7 +63,7 @@ class TestSendToSubscriptions:
 
 
 class TestNotifyNewBill:
-    def test_notifies_everyone_but_the_author(self):
+    def test_notifies_everyone_including_the_author(self):
         bill = {"id": "b1", "name": "Luz", "amount": 45000, "category_id": "c1"}
         with patch(
             "coinco_rep.push.subs_repo.list_for_household",
@@ -73,8 +73,8 @@ class TestNotifyNewBill:
         ), patch("coinco_rep.push.send_to_subscriptions", return_value=2) as send:
             push.notify_new_bill(HH, "juan", bill)
             subs, payload = send.call_args.args
-            assert {s["person_id"] for s in subs} == {"vale"}
-            assert len(subs) == 2
+            assert {s["person_id"] for s in subs} == {"juan", "vale"}
+            assert len(subs) == 3
             assert payload["title"] == "Juan agregó un gasto"
             assert payload["body"].startswith("Luz · ")
 
@@ -90,9 +90,9 @@ class TestNotifyNewBill:
             push.notify_new_bill(HH, "juan", bill)
             assert send.call_args.args[1]["body"].startswith("Agua · ")
 
-    def test_no_other_devices_sends_nothing(self):
+    def test_no_devices_sends_nothing(self):
         with patch(
-            "coinco_rep.push.subs_repo.list_for_household", return_value=[_sub("juan")]
+            "coinco_rep.push.subs_repo.list_for_household", return_value=[]
         ), patch("coinco_rep.push.send_to_subscriptions") as send:
             assert push.notify_new_bill(HH, "juan", {"id": "b1", "amount": 1}) == 0
             send.assert_not_called()
@@ -210,7 +210,7 @@ class TestNotifyBillChanges:
         after = {**self.BEFORE, "amount": "50000.00"}
         send = self._run(push.notify_bill_updated, self.BEFORE, after)
         subs, payload = send.call_args.args
-        assert {s["person_id"] for s in subs} == {"vale"}
+        assert {s["person_id"] for s in subs} == {"juan", "vale"}
         assert payload["title"] == "Juan editó un gasto"
         assert payload["body"] == "Luz · $45.000 → $50.000"
 

@@ -1,7 +1,7 @@
 """
 Web Push notifications for the PWA.
 
-- New, edited or deleted bill: notify every other household member's devices.
+- New, edited or deleted bill: notify every household member's devices, including the author's.
 - Month close (last day): each person gets their own share of the month.
 
 Requires VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (see scripts/generate_vapid_keys.py).
@@ -68,12 +68,9 @@ def _bill_label(household_id: str, bill: dict) -> str:
     )
 
 
-def _notify_others(household_id: str, actor_person_id: str, bill: dict, verb: str, body: str | None = None) -> int:
-    """Notify every household member except the actor about a bill change."""
-    subs = [
-        s for s in subs_repo.list_for_household(household_id)
-        if s["person_id"] != actor_person_id
-    ]
+def _notify_household(household_id: str, actor_person_id: str, bill: dict, verb: str, body: str | None = None) -> int:
+    """Notify every household member (the actor too) about a bill change."""
+    subs = subs_repo.list_for_household(household_id)
     if not subs:
         return 0
 
@@ -87,8 +84,8 @@ def _notify_others(household_id: str, actor_person_id: str, bill: dict, verb: st
 
 
 def notify_new_bill(household_id: str, actor_person_id: str, bill: dict) -> int:
-    """Tell the other household members that a bill was added."""
-    return _notify_others(household_id, actor_person_id, bill, "agregó")
+    """Tell the household that a bill was added."""
+    return _notify_household(household_id, actor_person_id, bill, "agregó")
 
 
 # Fields compared to tell a real edit from saving the form unchanged
@@ -96,7 +93,7 @@ _VISIBLE_FIELDS = ("category_id", "name", "amount", "date", "note", "split_mode"
 
 
 def notify_bill_updated(household_id: str, actor_person_id: str, before: dict | None, after: dict) -> int:
-    """Tell the others a bill was edited. Saving without changes sends nothing."""
+    """Tell the household a bill was edited. Saving without changes sends nothing."""
     if before is not None:
         changed = [
             f for f in _VISIBLE_FIELDS
@@ -110,12 +107,12 @@ def notify_bill_updated(household_id: str, actor_person_id: str, before: dict | 
             f"{_bill_label(household_id, after)} · "
             f"{fmt_clp(float(before['amount']))} → {fmt_clp(float(after['amount']))}"
         )
-    return _notify_others(household_id, actor_person_id, after, "editó", body)
+    return _notify_household(household_id, actor_person_id, after, "editó", body)
 
 
 def notify_bill_deleted(household_id: str, actor_person_id: str, bill: dict) -> int:
-    """Tell the other household members that a bill was deleted."""
-    return _notify_others(household_id, actor_person_id, bill, "eliminó")
+    """Tell the household that a bill was deleted."""
+    return _notify_household(household_id, actor_person_id, bill, "eliminó")
 
 
 def notify_monthly_closeout(household_id: str, month_key: str, preview: list[dict], total: float) -> int:
