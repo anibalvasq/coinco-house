@@ -50,7 +50,7 @@ export function openBillModal(
 
     const newCatHtml = showNewCatInput
       ? `<div style="display:flex;gap:8px;margin-top:8px">
-           <input id="new-cat-input" class="form-input" placeholder="Nueva categoría" value="${newCatName}" style="flex:1;padding:8px 12px;font-size:13px">
+           <input id="new-cat-input" class="form-input" placeholder="Nueva categoría" value="${newCatName}" style="flex:1;min-width:0;padding:8px 12px">
            <button id="new-cat-save" class="btn-accent" style="padding:8px 14px;font-size:13px">Agregar</button>
          </div>`
       : `<button id="new-cat-btn" class="cat-chip" style="background:none;border:1.5px dashed oklch(0.80 0.01 75);color:var(--text-secondary)">+ Nueva</button>`;
@@ -129,12 +129,10 @@ export function openBillModal(
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;margin-top:8px;${editing ? "justify-content:space-between" : "justify-content:flex-end"}">
+        <div class="modal-actions">
           ${editing ? `<button id="bill-delete" class="btn-destructive">Eliminar</button>` : ""}
-          <div style="display:flex;gap:10px">
-            <button id="bill-cancel" class="btn-outline">Cancelar</button>
-            <button id="bill-save" class="btn-accent">Guardar</button>
-          </div>
+          <button id="bill-cancel" class="btn-outline">Cancelar</button>
+          <button id="bill-save" class="btn-accent">Guardar</button>
         </div>
       </div>`;
 
