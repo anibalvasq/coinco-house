@@ -15,7 +15,8 @@
   },
   "devDependencies": {
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vite-plugin-pwa": "^2.0.0"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",

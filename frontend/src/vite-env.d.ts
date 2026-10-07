@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
   /** Absolute API base, e.g. https://your-app.vercel.app/api/v1 (required for bundled iOS) */

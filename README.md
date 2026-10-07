@@ -109,7 +109,7 @@ Ejecuta `001_initial_schema.sql` en el Supabase del proyecto de producción **an
 
 La app puede instalarse en iPhone de dos formas:
 
-1. **PWA** — Safari → Agregar a pantalla de inicio (sin App Store)
+1. **PWA** — Safari → Agregar a pantalla de inicio (sin App Store). En Android/Chrome/Edge aparece "Instalar app". El service worker (`vite-plugin-pwa`) cachea la app para que abra sin conexión; las llamadas a `/api` siempre van a la red.
 2. **App Store** — Capacitor + Xcode (requiere Mac y cuenta Apple Developer)
 
 Guía completa: **[docs/ios.md](docs/ios.md)**

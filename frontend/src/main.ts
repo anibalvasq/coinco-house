@@ -241,4 +241,9 @@ if (Capacitor.isNativePlatform()) {
   import("@capacitor/status-bar").then(({ StatusBar, Style }) => {
     StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
   });
+} else if (import.meta.env.PROD && import.meta.env.MODE !== "mobile" && "serviceWorker" in navigator) {
+  // PWA: offline app shell + installability (Chrome/Android "Instalar app")
+  import("virtual:pwa-register").then(({ registerSW }) => {
+    registerSW({ immediate: true });
+  });
 }
